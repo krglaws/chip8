@@ -6,14 +6,15 @@
 #define ROM_START 0x200
 #define MEM_LEN 0x1000
 #define MAX_STACK 0x10
-#define DISP_WIDTH 0x20
-#define DISP_HEIGHT 0x40
+#define DISP_HEIGHT 0x20
+#define DISP_WIDTH 0x40
 #define FONT_START 0x50
 
 
 int init_hdw(char*);
 int cls();
 int load_rom(char*);
+int draw(unsigned short);
 unsigned short fetch();
 int decode(unsigned short);
 
@@ -40,7 +41,7 @@ unsigned short pc;
 unsigned short sp;
 
 // display grid 1
-unsigned int display32x64[DISP_HEIGHT][DISP_WIDTH];
+unsigned int display32x64[DISP_HEIGHT * DISP_WIDTH];
 
 // font set
 unsigned char chip8_fontset[80] =
@@ -89,13 +90,17 @@ int init_hdw(char * rom_file){
   // clear screen
   cls();
 
+  // TEST DRAW
+  I = FONT_START;
+  draw((unsigned short) 0x0005);
+
   return 0;
 }
 
 
 // clear display
 int cls(){
-  memset(display32x64, 0x00000000, DISP_WIDTH*DISP_HEIGHT);
+  memset(display32x64, 0x00000000, DISP_WIDTH * DISP_HEIGHT * sizeof(int));
   return 0;
 }
 
@@ -215,14 +220,15 @@ int draw(unsigned short opcode){
   // for each row
   for (int i = 0; i < rows; i++){
     sprite = mem[I + i];
+    printf("printing sprite 0x%X\n",sprite);
     // for each bit
     for (char j = 0; j < 8; j++){
       pxl = (sprite >> (8 - (j + 1)));// & 1;
       if (pxl){
         printf("drawing pixel at (%d, %d)\n", y+i, x+j);
-        if (display32x64[y+i][x+j])
-        V[0xF] = 1;
-        display32x64[((y+i) * WIDTH) + (x+j)] ^= 0xFFFFFFFF;
+        if (display32x64[((y+i) * DISP_WIDTH) + (x+j)])
+          V[0xF] = 1;
+        display32x64[((y+i) * DISP_WIDTH) + (x+j)] ^= 0xFFFFFFFF;
       }
     }
   }
@@ -232,43 +238,6 @@ int draw(unsigned short opcode){
 
 int get_time(){
   //TODO
-}
-
-
-int control_flow(unsigned short instr){
-
-  unsigned char nibble0 = (instr & 0xF000) >> 12;
-  unsigned char nibble1 = (instr & 0x0F00) >> 8;
-  unsigned char nibble2 = (instr & 0x00F0) >> 4;
-  unsigned char nibble3 = (instr & 0x000F);
-  unsigned char byte1   = (instr & 0x00FF);
-
-  switch(nibble0){
-
-
-
-    case 0xE:
-      switch(byte1){
-        case 0x9E:
-        printf("skip next instruction if (key() == V%d)\n", nibble1);
-
-        //TODO
-
-        break;
-          case 0xA1:
-          printf("skip next instruction if (key() != V%d)\n", nibble1);
-
-          //TODO
-
-          break;
-        default:
-          return 1;
-      }
-      break;
-
-    default:
-      return 1;
-  }
   return 0;
 }
 
@@ -515,10 +484,12 @@ int decode(unsigned short instr){
       }
       break;
 
-    default:
-      return control_flow(instr);
+      default:
+        printf("unrecognized instruction: 0x%X\n", instr);
+        return 1;
   }
 
   // should be unreachable
+  printf("U FOOKING WOT M8\n");
   return 1;
 }
