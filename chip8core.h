@@ -64,6 +64,7 @@ unsigned char chip8_fontset[80] =
   0xF0, 0x80, 0xF0, 0x80, 0x80  // F
 };
 
+
 int init_hdw(char * rom_file){
 
   // clear memory
@@ -71,7 +72,7 @@ int init_hdw(char * rom_file){
 
   // load fontset
   for (int i = FONT_START; i < FONT_START+80; i++)
-    mem[i] = chip8_fontset[i];
+    mem[i] = chip8_fontset[i-FONT_START];
 
   // clear registers
   memset(V, 0, 0x10);
@@ -90,17 +91,13 @@ int init_hdw(char * rom_file){
   // clear screen
   cls();
 
-  // TEST DRAW
-  I = FONT_START;
-  draw((unsigned short) 0x0005);
-
   return 0;
 }
 
 
 // clear display
 int cls(){
-  memset(display32x64, 0x00000000, DISP_WIDTH * DISP_HEIGHT * sizeof(int));
+  memset(display32x64, 0, DISP_WIDTH * DISP_HEIGHT * sizeof(int));
   return 0;
 }
 
@@ -170,7 +167,11 @@ int push(unsigned short addr){
     return 1;
   }
 
-  mem[sp--] = addr;
+  unsigned char lit = addr & 0x00FF;
+  unsigned char big = (addr >> 8) & 0x00FF;
+
+  mem[sp--] = lit; // little end
+  mem[sp--] = big; // big end
 
   return 0;
 }
@@ -193,8 +194,10 @@ int ret(){
     return 1;
   }
 
-  // pop
-  pc = mem[sp++];
+  // pop  
+  unsigned char big = mem[++sp]; // big end
+  unsigned char lit = mem[++sp]; // little end
+  pc = (big << 8) + lit;
 
   return 0;
 }
@@ -202,30 +205,20 @@ int ret(){
 
 int draw(unsigned short opcode){
 
-  unsigned char x    = V[(opcode & 0x0F00) >> 8];
-  unsigned char y    = V[(opcode & 0x00F0) >> 4];
+  unsigned char x = V[(opcode & 0x0F00) >> 8];
+  unsigned char y = V[(opcode & 0x00F0) >> 4];
   unsigned char rows = opcode & 0x000F;
-
-  printf("coords = (%d, %d)\nheight = %d\n", x, y, rows);
-
-  if (x + 8 >= 64 || y + rows >= 32){
-    printf("draw sprite out of bounds: x = %d, y = %d\n", x, y);
-    return 1;
-  }
-
   unsigned char sprite;
   unsigned char pxl;
   V[0xF] = 0;
 
   // for each row
-  for (int i = 0; i < rows; i++){
+  for (int i = 0; i < rows && (i + y) < DISP_HEIGHT; i++){
     sprite = mem[I + i];
-    printf("printing sprite 0x%X\n",sprite);
     // for each bit
-    for (char j = 0; j < 8; j++){
-      pxl = (sprite >> (8 - (j + 1)));// & 1;
+    for (char j = 0; j < 8 && (j + x) < DISP_WIDTH; j++){
+      pxl = (sprite >> (8 - (j + 1))) & 1;
       if (pxl){
-        printf("drawing pixel at (%d, %d)\n", y+i, x+j);
         if (display32x64[((y+i) * DISP_WIDTH) + (x+j)])
           V[0xF] = 1;
         display32x64[((y+i) * DISP_WIDTH) + (x+j)] ^= 0xFFFFFFFF;
@@ -279,18 +272,18 @@ int decode(unsigned short instr){
 
     case 3:
       printf("skip next instruction if (V%d == 0x%X)\n", nibble1, byte1);
-      if (V[nibble1] == byte1) pc++;
-      break;
+      if (V[nibble1] == byte1) pc += 2;
+      return 0;
 
     case 4:
       printf("skip next instruction if (V%d != 0x%X)\n", nibble1, byte1);
-      if (V[nibble1] != byte1) pc++;
-      break;
+      if (V[nibble1] != byte1) pc += 2;
+      return 0;
 
     case 5:
       if (nibble3 == 0){
         printf("skip next instruction if (V%d == V%d)\n", nibble1, nibble2);
-        if (V[nibble1] == V[nibble2]) pc++;
+        if (V[nibble1] == V[nibble2]) pc += 2;
         return 0;
       }
       else {
@@ -377,14 +370,13 @@ int decode(unsigned short instr){
     case 9:
       if (nibble3 == 0){
         printf("skip next instruction if (V%d != V%d)\n", nibble1, nibble2);
-        if (V[nibble1] != V[nibble2]) pc++;
+        if (V[nibble1] != V[nibble2]) pc += 2;
         return 0;
       }
       else {
         printf("unrecognized instruction: 0x%X\n", instr);
         return 1;
       }
-      break;
 
     case 0xA:
       printf("I = 0x%X\n", (0x0FFF & instr));
@@ -407,21 +399,21 @@ int decode(unsigned short instr){
     case 0xE:
       switch(byte1){
         case 0x9E:
-        printf("skip next instruction if (key() == V%d)\n", nibble1);
+          printf("skip next instruction if (key() == V%d)\n", nibble1);
 
-        //TODO
+          //TODO
+          return 0;
 
-        break;
-          case 0xA1:
+        case 0xA1:
           printf("skip next instruction if (key() != V%d)\n", nibble1);
 
           //TODO
+          return 0;
 
-          break;
         default:
+          printf("unrecognized instruction: 0x%X\n", instr);
           return 1;
       }
-      break;
 
     case 0xF:
       switch(byte1){
@@ -434,7 +426,7 @@ int decode(unsigned short instr){
         case 0x0A:
           printf("V%d = get_key() (execution halted until key pressed)\n", nibble1);
 
-          // TODO something like: while key_pressed, pc--;
+          // TODO something like: while !key_pressed, pc -= 2;
 
           return 0;
 
@@ -463,7 +455,7 @@ int decode(unsigned short instr){
           mem[I]     = V[(instr & 0x0F00) >> 8] / 100;
           mem[I + 1] = (V[(instr & 0x0F00) >> 8] / 10) % 10;
           mem[I + 2] = (V[(instr & 0x0F00) >> 8] % 100) % 10;
-          pc += 2;
+          //pc += 2;
           return 0;
 
         case 0x55:
@@ -482,7 +474,6 @@ int decode(unsigned short instr){
           printf("unrecognized instruction: 0x%X\n", instr);
           return 1;
       }
-      break;
 
       default:
         printf("unrecognized instruction: 0x%X\n", instr);
@@ -490,6 +481,6 @@ int decode(unsigned short instr){
   }
 
   // should be unreachable
-  printf("U FOOKING WOT M8\n");
+  printf("U FOOKING WOT M8: 0x%X\n", instr);
   return 1;
 }

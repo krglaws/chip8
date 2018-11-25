@@ -1,3 +1,5 @@
-roms
 *.o
 chip8
+decompile
+*.txt
+dcchip8

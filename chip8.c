@@ -7,22 +7,14 @@
 
 #include "chip8core.h"
 
-/*
-int update_display(SDL_Texture* texture, unsigned int screen, unsigned char display){
-  for (int i = 0; i < HEIGHT; i++)
-    for (int j = 0; j < WIDTH; j++)
-      if (display[i][j])
-        screen
-}
-*/
 
 int main(int argc, char **argv){
-  //unsigned int screen [DISP_WIDTH * DISP_HEIGHT];
+
   SDL_Window* window;
   SDL_Renderer* renderer;
   SDL_Texture* texture;
 
-  //unsigned short instr;
+  unsigned short instr;
 
   if (argc < 2){
     printf("Too few arguments supplied\n");
@@ -65,12 +57,13 @@ int main(int argc, char **argv){
     if (event.type == SDL_QUIT)
       break;
 
-    //instr = fetch();
+    instr = fetch();
 
-    /*if(decode(instr)){
-      printf("exiting...");
+    if(decode(instr)){
+      printf("exiting...\n");
       return 0;
-    }*/
+    }
+
     //update_screen
     SDL_UpdateTexture(texture, NULL, display32x64, 4*DISP_WIDTH);
     SDL_RenderCopy(renderer, texture, NULL, NULL);
