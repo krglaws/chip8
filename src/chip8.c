@@ -54,8 +54,8 @@ int main(int argc, char **argv){
 
     SDL_PollEvent(&event);
 
-    if (event.type == SDL_QUIT)
-      break;
+    if (event.type == SDL_QUIT) break;
+    if (event.type == SDL_KEYDOWN) 
 
     instr = fetch();
 

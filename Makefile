@@ -6,7 +6,7 @@ CC := gcc
 CFLAGS := `sdl2-config --libs --cflags` --std=c99 -Wall -lSDL2_image -lm
 
 # header files
-HDRS := chip8core.h chip8screen.h
+HDRS := chip8core.h
 
 # source files
 SRCS := chip8.c
