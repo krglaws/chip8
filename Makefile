@@ -1,4 +1,3 @@
-
 # set compiler
 CC := gcc
 
@@ -6,16 +5,16 @@ CC := gcc
 CFLAGS := `sdl2-config --libs --cflags` --std=c99 -Wall -lSDL2_image -lm
 
 # header files
-HDRS := chip8core.h
+HDRS := src/chip8core.h
 
 # source files
-SRCS := chip8.c
+SRCS := src/chip8.c
 
 # names of outputted object files
 OBJS := $(SRCS:.c=.o)
 
 # name of final executable
-EXEC := chip8
+EXEC := bin/chip8
 
 # default recipe
 all: $(EXEC)

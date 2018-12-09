@@ -43,6 +43,9 @@ unsigned short sp;
 // display grid 1
 unsigned int display32x64[DISP_HEIGHT * DISP_WIDTH];
 
+// keyboard
+unsigned char keys[0x10];
+
 // font set
 unsigned char chip8_fontset[80] =
 {
@@ -90,6 +93,9 @@ int init_hdw(char * rom_file){
 
   // clear screen
   cls();
+
+  // clear keys
+  memset(keys, 0, 0x10);
 
   return 0;
 }
@@ -194,7 +200,7 @@ int ret(){
     return 1;
   }
 
-  // pop  
+  // pop
   unsigned char big = mem[++sp]; // big end
   unsigned char lit = mem[++sp]; // little end
   pc = (big << 8) + lit;
@@ -225,12 +231,6 @@ int draw(unsigned short opcode){
       }
     }
   }
-  return 0;
-}
-
-
-int get_time(){
-  //TODO
   return 0;
 }
 
@@ -400,14 +400,12 @@ int decode(unsigned short instr){
       switch(byte1){
         case 0x9E:
           printf("skip next instruction if (key() == V%d)\n", nibble1);
-
-          //TODO
+          if (keys[V[nibble1]]) pc += 2;
           return 0;
 
         case 0xA1:
           printf("skip next instruction if (key() != V%d)\n", nibble1);
-
-          //TODO
+          if (!keys[V[nibble1]]) pc += 2;
           return 0;
 
         default:
@@ -425,9 +423,13 @@ int decode(unsigned short instr){
 
         case 0x0A:
           printf("V%d = get_key() (execution halted until key pressed)\n", nibble1);
-
-          // TODO something like: while !key_pressed, pc -= 2;
-
+          int pressed = 0;
+          for (int i = 0; i < 0x10; i++)
+            if (keys[i]){
+              pressed = 1;
+              V[nibble1] = i;
+            }
+          if (!pressed) pc -= 2;
           return 0;
 
         case 0x15:
@@ -455,7 +457,6 @@ int decode(unsigned short instr){
           mem[I]     = V[(instr & 0x0F00) >> 8] / 100;
           mem[I + 1] = (V[(instr & 0x0F00) >> 8] / 10) % 10;
           mem[I + 2] = (V[(instr & 0x0F00) >> 8] % 100) % 10;
-          //pc += 2;
           return 0;
 
         case 0x55:
