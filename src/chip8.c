@@ -57,23 +57,9 @@ int main(int argc, char **argv)
   int quit = 0;
   while (!quit)
   {
-
-    SDL_PollEvent(&event);
-
-    switch(event.type)
-    {
-      case SDL_QUIT:
-        quit = 1;
-        break;
-      case SDL_KEYDOWN:
-      case SDL_KEYUP:
-        handle_keys(event.key.keysym.sym);
-        break;
-    }
-
     instr = fetch();
 
-    if(decode(instr))
+    if (decode(instr))
     {
       printf("exiting...\n");
       return 0;
@@ -83,7 +69,22 @@ int main(int argc, char **argv)
     SDL_UpdateTexture(texture, NULL, display32x64, 4*DISP_WIDTH);
     SDL_RenderCopy(renderer, texture, NULL, NULL);
     SDL_RenderPresent(renderer);
-    SDL_Delay(1000/60);
+    //SDL_Delay(10);
+
+    while (SDL_PollEvent(&event))
+    {
+      switch (event.type)
+      {
+        case SDL_QUIT:
+          quit = 1;
+          break;
+        case SDL_KEYDOWN:
+        case SDL_KEYUP:
+          handle_keys(event.key.keysym.sym, event.type);
+          break;
+      }
+    }
+    if (dt > 0) dt--;
   }
 
   SDL_DestroyWindow(window);
@@ -93,89 +94,74 @@ int main(int argc, char **argv)
 }
 
 
-void handle_keys(int key)
+void handle_keys(int key, int type)
 {
   switch(key)
   {
     case SDLK_1:
-      if (keys[0x1]) printf("key '1' up\n");
-      else printf("key '2' down\n");
-      keys[0x1] = !keys[0x1];
+      if (type == SDL_KEYDOWN) keys[0x1] = 1;
+      else keys[0x1] = 0;
       break;
     case SDLK_2:
-      if (keys[0x2]) printf("key '2' up\n");
-      else printf("key '2' down\n");
-      keys[0x2] = !keys[0x2];
+      if (type == SDL_KEYDOWN) keys[0x2] = 1;
+      else keys[0x2] = 0;
       break;
     case SDLK_3:
-      if (keys[0x2]) printf("key '3' up\n");
-      else printf("key '3' down\n");
-      keys[0x3] = !keys[0x3];
+      if (type == SDL_KEYDOWN) keys[0x3] = 1;
+      else keys[0x3] = 0;
       break;
     case SDLK_4:
-      if (keys[0xC]) printf("key 'C' up\n");
-      else printf("key 'C' down\n");
-      keys[0xC] = !keys[0xC];
+      if (type == SDL_KEYDOWN) keys[0xC] = 1;
+      else keys[0xC] = 0;
       break;
     case SDLK_q:
-      if (keys[0x4]) printf("key '4' up\n");
-      else printf("key '4' down\n");
-      keys[0x4] = !keys[0x4];
+      if (type == SDL_KEYDOWN) keys[0x4] = 1;
+      else keys[0x4] = 0;
       break;
     case SDLK_w:
-      if (keys[0x5]) printf("key '5' up\n");
-      else printf("key '5' down\n");
-      keys[0x5] = !keys[0x5];
+      if (type == SDL_KEYDOWN) keys[0x5] = 1;
+      else keys[0x5] = 0;
       break;
     case SDLK_e:
-      if (keys[0x6]) printf("key '6' up\n");
-      else printf("key '6' down\n");
-      keys[0x6] = !keys[0x6];
+      if (type == SDL_KEYDOWN) keys[0x6] = 1;
+      else keys[0x6] = 0;
       break;
     case SDLK_r:
-      if (keys[0xD]) printf("key 'D' up\n");
-      else printf("key 'D' down\n");
-      keys[0xD] = !keys[0xD];
+      if (type == SDL_KEYDOWN) keys[0xD] = 1;
+      else keys[0xD] = 0;
       break;
     case SDLK_a:
-      if (keys[0x7]) printf("key '7' up\n");
-      else printf("key '7' down\n");
-      keys[0x7] = !keys[0x7];
+      if (type == SDL_KEYDOWN) keys[0x7] = 1;
+      else keys[0x7] = 0;
       break;
     case SDLK_s:
-      if (keys[0x8]) printf("key '8' up\n");
-      else printf("key '8' down\n");
-      keys[0x8] = !keys[0x8];
+      if (type == SDL_KEYDOWN) keys[0x8] = 1;
+      else keys[0x8] = 0;
       break;
     case SDLK_d:
-      if (keys[0x9]) printf("key '9' up\n");
-      else printf("key '9' down\n");
-      keys[0x9] = !keys[0x9];
+      if (type == SDL_KEYDOWN) keys[0x9] = 1;
+      else keys[0x9] = 0;
       break;
     case SDLK_f:
-      if (keys[0xE]) printf("key 'E' up\n");
-      else printf("key 'E' down\n");
-      keys[0xE] = !keys[0xE];
+      if (type == SDL_KEYDOWN) keys[0xE] = 1;
+      else keys[0xE] = 0;
       break;
     case SDLK_z:
-      if (keys[0xA]) printf("key 'A' up\n");
-      else printf("key 'A' down\n");
-      keys[0xA] = !keys[0xA];
+      if (type == SDL_KEYDOWN) keys[0xA] = 1;
+      else keys[0xA] = 0;
       break;
     case SDLK_x:
-      if (keys[0x0]) printf("key '0' up\n");
-      else printf("key '0' down\n");
-      keys[0x0] = !keys[0x0];
+      if (type == SDL_KEYDOWN) keys[0x0] = 1;
+      else keys[0x0] = 0;
       break;
     case SDLK_c:
-      if (keys[0xB]) printf("key 'B' up\n");
-      else printf("key 'B' down\n");
-      keys[0xB] = !keys[0xB];
+      if (type == SDL_KEYDOWN) keys[0xB] = 1;
+      else keys[0xB] = 0;
       break;
     case SDLK_v:
-      if (keys[0xF]) printf("key 'F' up\n");
-      else printf("key 'F' down\n");
-      keys[0xF] = !keys[0xF];
+      if (type == SDL_KEYDOWN) keys[0xF] = 1;
+      else keys[0xF] = 0;
       break;
   }
+  return;
 }

@@ -8,7 +8,7 @@
 #define MAX_STACK 0x10
 #define DISP_HEIGHT 0x20
 #define DISP_WIDTH 0x40
-#define FONT_START 0x50
+#define FONT_START 0x0
 
 
 int init_hdw(char*);
@@ -195,10 +195,8 @@ int call(unsigned short instr){
 
 int ret(){
 
-  if (sp == MEM_LEN - 1){
-    printf("pop on empty stack\n");
+  if (sp == MEM_LEN - 1)
     return 1;
-  }
 
   // pop
   unsigned char big = mem[++sp]; // big end
@@ -216,18 +214,24 @@ int draw(unsigned short opcode){
   unsigned char rows = opcode & 0x000F;
   unsigned char sprite;
   unsigned char pxl;
+  int addr;
   V[0xF] = 0;
 
   // for each row
-  for (int i = 0; i < rows && (i + y) < DISP_HEIGHT; i++){
+  printf("drawing sprite at (%d, %d):\n", x, y);
+  for (int i = 0; i < rows; i++){
     sprite = mem[I + i];
+    printf("0x%X\n", sprite);
     // for each bit
-    for (char j = 0; j < 8 && (j + x) < DISP_WIDTH; j++){
+    for (char j = 0; j < 8; j++){
+      addr = (((y+i) % DISP_HEIGHT) * DISP_WIDTH) + ((x+j) % DISP_WIDTH);
       pxl = (sprite >> (8 - (j + 1))) & 1;
       if (pxl){
-        if (display32x64[((y+i) * DISP_WIDTH) + (x+j)])
+        if (display32x64[addr]){
           V[0xF] = 1;
-        display32x64[((y+i) * DISP_WIDTH) + (x+j)] ^= 0xFFFFFFFF;
+          display32x64[addr] = 0;
+        }
+        else display32x64[addr] ^= 0xFFFFFFFF;
       }
     }
   }
@@ -257,7 +261,6 @@ int decode(unsigned short instr){
           return ret();
 
         default:
-          // ignore
           printf("call SYS func at 0x%X\n", (0x0FFF & instr));
           return 0;
       }
@@ -339,6 +342,7 @@ int decode(unsigned short instr){
             V[0xF] = 0;
           else
             V[0xF] = 1;
+          V[nibble1] -= V[nibble2];
           return 0;
 
         case 6:
@@ -418,23 +422,23 @@ int decode(unsigned short instr){
 
         case 0x07:
           printf("V%d = get_delay()\n", nibble1);
-          V[nibble1] = dt;
+          V[nibble1] = dt/10;
           return 0;
 
         case 0x0A:
           printf("V%d = get_key() (execution halted until key pressed)\n", nibble1);
-          int pressed = 0;
+          {int pressed = 0;
           for (int i = 0; i < 0x10; i++)
             if (keys[i]){
               pressed = 1;
               V[nibble1] = i;
             }
           if (!pressed) pc -= 2;
-          return 0;
+          return 0;}
 
         case 0x15:
           printf("delay_timer(V%d)\n", nibble1);
-          dt = V[nibble1];
+          dt = V[nibble1] * 60;
           return 0;
 
         case 0x18:
@@ -461,14 +465,14 @@ int decode(unsigned short instr){
 
         case 0x55:
           printf("reg_dump(V%d, &I)\n", nibble1);
-          for (int i = 0, store = I; i < nibble1; i++)
-            mem[store++] = V[i];
+          for (int i = 0, store = I; i <= nibble1; i++, store++)
+            mem[store] = V[i];
           return 0;
 
         case 0x65:
           printf("reg_load(V%d, &I)\n", nibble1);
-          for (int i = 0, load = I; i < nibble1; i++)
-            V[i] = mem[load++];
+          for (int i = 0, load = I; i <= nibble1; i++, load++)
+            V[i] = mem[load];
           return 0;
 
         default:
