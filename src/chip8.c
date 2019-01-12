@@ -6,70 +6,46 @@
 #include <SDL2/SDL_timer.h>
 
 #include "chip8core.h"
+#include "timer.h"
 
+void update_display(SDL_Renderer*, SDL_Texture*, unsigned int*);
+int setup(int, char**, SDL_Window**, SDL_Renderer**, SDL_Texture**);
 void handle_keys();
 
+// time in milliseconds
+#define REFRESH_RATE ((1.0/50) * 1000)
+#define DELAY_TIME ((1.0/80) * 1000)
+#define CYCLE_TIME ((1.0/5000) * 1000)
 
 int main(int argc, char **argv)
 {
-
   SDL_Window* window;
   SDL_Renderer* renderer;
   SDL_Texture* texture;
-
   unsigned short instr;
-
-  if (argc < 2)
-  {
-    printf("Too few arguments supplied\n");
-    exit(0);
-  }
-
-  // load rom and initialize hardware, RAM, registers, etc.
-  if (init_hdw(argv[1]))
-    return 0;
-
-  if (SDL_Init(SDL_INIT_VIDEO) != 0)
-  {
-    printf("error initializing SDL: %s\n", SDL_GetError());
-    return 1;
-  }
-
-  window = SDL_CreateWindow("Chip8 Emu", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, DISP_WIDTH*15, DISP_HEIGHT*15, SDL_WINDOW_RESIZABLE);
-  if(!window)
-    printf("error creating window: %s\n", SDL_GetError());
-
-  renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
-  if(!renderer)
-  {
-    printf("error creating renderer: %s\n", SDL_GetError());
-    SDL_DestroyWindow(window);
-    SDL_Quit();
-    return 1;
-  }
-
-  texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, DISP_WIDTH, DISP_HEIGHT);
-  SDL_UpdateTexture(texture, NULL, display32x64, sizeof(int)*DISP_WIDTH);
-  SDL_RenderCopy(renderer, texture, NULL, NULL);
-  SDL_RenderPresent(renderer);
-
   SDL_Event event;
   int quit = 0;
+  double start, end, elapsed=0, frame_timer=0, delay_timer=0, draw_time=0;
+
+  // setup window and renderer, initialize hardware
+  if (setup(argc, argv, &window, &renderer, &texture))
+    return 0;
+
+  update_display(renderer, texture, display32x64);
+  SDL_RenderPresent(renderer);
+
+  // main loop
   while (!quit)
   {
+    GET_TIME(start);
     instr = fetch();
-
     if (decode(instr))
     {
       printf("exiting...\n");
       return 0;
     }
 
-    //update_screen
-    SDL_UpdateTexture(texture, NULL, display32x64, 4*DISP_WIDTH);
-    SDL_RenderCopy(renderer, texture, NULL, NULL);
-    SDL_RenderPresent(renderer);
-    //SDL_Delay(10);
+    update_display(renderer, texture, display32x64);
 
     while (SDL_PollEvent(&event))
     {
@@ -84,12 +60,94 @@ int main(int argc, char **argv)
           break;
       }
     }
-    if (dt > 0) dt--;
+
+    // draw every 16 milliseconds (1/60th of a second)
+    if (frame_timer > REFRESH_RATE)
+    {
+      GET_TIME(draw_time);
+      frame_timer += (draw_time - start)/1000;
+      printf("Drawing. Elapsed time since last draw = %f ms\n", frame_timer);
+      SDL_RenderPresent(renderer);
+      frame_timer = 0;
+    }
+
+    GET_TIME(end);
+    elapsed = (end - start)/1000;
+    if (elapsed < 0) elapsed = 0;
+
+    if (elapsed < CYCLE_TIME) {
+      printf("Cycle time = %f ms, waiting %f ms longer\n", elapsed, CYCLE_TIME - elapsed);
+      SDL_Delay((int) CYCLE_TIME - elapsed);
+    }
+
+    GET_TIME(end);
+    elapsed = (end - start)/1000;
+    if (elapsed < 0) elapsed = 0;
+
+    if (draw_time)
+    {
+      frame_timer += end > draw_time ? (end - draw_time)/1000 : 0;
+      draw_time = 0;
+    }
+    else frame_timer += elapsed;
+
+    delay_timer += elapsed;
+    if (delay_timer > DELAY_TIME)
+    {
+      if (dt > 0) dt--;
+      delay_timer = 0;
+    }
+
+    printf("Cycle time = %f ms. frame_timer = %f\n", (end-start)/1000, frame_timer);
   }
 
   SDL_DestroyWindow(window);
   SDL_Quit();
+  return 0;
+}
 
+
+void update_display(SDL_Renderer* renderer, SDL_Texture* texture, unsigned int* display)
+{
+  if (update_flag)
+  {
+    SDL_UpdateTexture(texture, NULL, display, sizeof(int)*DISP_WIDTH);
+    SDL_RenderCopy(renderer, texture, NULL, NULL);
+    update_flag = 0;
+  }
+}
+
+
+int setup(int argc, char** argv, SDL_Window** window, SDL_Renderer** renderer, SDL_Texture** texture)
+{
+  if (argc < 2)
+  {
+    printf("Too few arguments supplied\n");
+    return 1;
+  }
+  if (init_hdw(argv[1]))
+    return 1;
+  if (SDL_Init(SDL_INIT_VIDEO) != 0)
+  {
+    printf("error initializing SDL: %s\n", SDL_GetError());
+    return 1;
+  }
+  *window = SDL_CreateWindow("Chip8 Emu", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, DISP_WIDTH*15, DISP_HEIGHT*15, SDL_WINDOW_RESIZABLE);
+  if(!*window)
+  {
+    printf("error creating window: %s\n", SDL_GetError());
+    SDL_Quit();
+    return 1;
+  }
+  *renderer = SDL_CreateRenderer(*window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+  if(!*renderer)
+  {
+    printf("error creating renderer: %s\n", SDL_GetError());
+    SDL_DestroyWindow(*window);
+    SDL_Quit();
+    return 1;
+  }
+  *texture = SDL_CreateTexture(*renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, DISP_WIDTH, DISP_HEIGHT);
   return 0;
 }
 

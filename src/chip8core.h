@@ -43,6 +43,9 @@ unsigned short sp;
 // display grid 1
 unsigned int display32x64[DISP_HEIGHT * DISP_WIDTH];
 
+// screen update flag
+char update_flag = 0;
+
 // keyboard
 unsigned char keys[0x10];
 
@@ -104,6 +107,7 @@ int init_hdw(char * rom_file){
 // clear display
 int cls(){
   memset(display32x64, 0, DISP_WIDTH * DISP_HEIGHT * sizeof(int));
+  update_flag = 1;
   return 0;
 }
 
@@ -215,13 +219,12 @@ int draw(unsigned short opcode){
   unsigned char sprite;
   unsigned char pxl;
   int addr;
+  update_flag = 1;
   V[0xF] = 0;
 
   // for each row
-  printf("drawing sprite at (%d, %d):\n", x, y);
   for (int i = 0; i < rows; i++){
     sprite = mem[I + i];
-    printf("0x%X\n", sprite);
     // for each bit
     for (char j = 0; j < 8; j++){
       addr = (((y+i) % DISP_HEIGHT) * DISP_WIDTH) + ((x+j) % DISP_WIDTH);

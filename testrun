@@ -1,0 +1,7 @@
+make clean
+make all
+rm run.txt
+
+#bin/chip8 roms/INVADERS >> run.txt
+
+bin/chip8 roms/INVADERS >> /dev/null
