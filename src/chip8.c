@@ -40,10 +40,7 @@ int main(int argc, char **argv)
     GET_TIME(start);
     instr = fetch();
     if (decode(instr))
-    {
-      printf("exiting...\n");
       return 0;
-    }
 
     update_display(renderer, texture, display32x64);
 
@@ -66,7 +63,6 @@ int main(int argc, char **argv)
     {
       GET_TIME(draw_time);
       frame_timer += (draw_time - start)/1000;
-      printf("Drawing. Elapsed time since last draw = %f ms\n", frame_timer);
       SDL_RenderPresent(renderer);
       frame_timer = 0;
     }
@@ -75,10 +71,8 @@ int main(int argc, char **argv)
     elapsed = (end - start)/1000;
     if (elapsed < 0) elapsed = 0;
 
-    if (elapsed < CYCLE_TIME) {
-      printf("Cycle time = %f ms, waiting %f ms longer\n", elapsed, CYCLE_TIME - elapsed);
+    if (elapsed < CYCLE_TIME)
       SDL_Delay((int) CYCLE_TIME - elapsed);
-    }
 
     GET_TIME(end);
     elapsed = (end - start)/1000;
@@ -98,7 +92,6 @@ int main(int argc, char **argv)
       delay_timer = 0;
     }
 
-    printf("Cycle time = %f ms. frame_timer = %f\n", (end-start)/1000, frame_timer);
   }
 
   SDL_DestroyWindow(window);

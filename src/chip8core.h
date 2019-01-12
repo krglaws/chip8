@@ -251,87 +251,67 @@ int decode(unsigned short instr){
   unsigned char byte1   = (instr & 0x00FF);
 
   switch(nibble0){
-
     case 0:
       switch(instr){
-
         case 0x00E0:
-          printf("disp_clear()\n");
           return cls();
 
         case 0x00EE:
-          printf("return\n");
           return ret();
 
         default:
-          printf("call SYS func at 0x%X\n", (0x0FFF & instr));
           return 0;
       }
 
     case 1:
-      printf("jmp 0x%X\n", (0x0FFF & instr));
       return jmp(instr);
 
     case 2:
-      printf("call 0x%X\n", (0x0FFF & instr));
       return call(instr);
 
     case 3:
-      printf("skip next instruction if (V%d == 0x%X)\n", nibble1, byte1);
       if (V[nibble1] == byte1) pc += 2;
       return 0;
 
     case 4:
-      printf("skip next instruction if (V%d != 0x%X)\n", nibble1, byte1);
       if (V[nibble1] != byte1) pc += 2;
       return 0;
 
     case 5:
-      if (nibble3 == 0){
-        printf("skip next instruction if (V%d == V%d)\n", nibble1, nibble2);
+      if (nibble3 == 0)
+      {
         if (V[nibble1] == V[nibble2]) pc += 2;
         return 0;
       }
-      else {
-        printf("unrecognized instruction: 0x%X\n", instr);
-        return 1;
-      }
+      else return 1;
 
     case 6:
-      printf("V%d = 0x%X\n", nibble1, byte1);
       V[nibble1] = byte1;
       return 0;
 
     case 7:
-      printf("V%d += 0x%X\n", nibble1, byte1);
       V[nibble1] += byte1;
       return 0;
 
     case 8:
       switch(nibble3){
-
         case 0:
-          printf("V%d = V%d\n", nibble1, nibble2);
           V[nibble1] = V[nibble2];
           return 0;
 
         case 1:
-          printf("V%d |= V%d\n", nibble1, nibble2);
           V[nibble1] |= V[nibble2];
           return 0;
 
         case 2:
-          printf("V%d &= V%d\n", nibble1, nibble2);
           V[nibble1] &= V[nibble2];
           return 0;
 
         case 3:
-          printf("V%d ^= V%d\n", nibble1, nibble2);
           V[nibble1] ^= V[nibble2];
           return 0;
 
         case 4:
-          printf("V%d += V%d (VF = 1 if there's a carry, else VF = 0)\n", nibble1, nibble2);
           if (V[nibble1] + V[nibble2] > 0xFF)
             V[0xF] = 1;
           else
@@ -340,7 +320,6 @@ int decode(unsigned short instr){
           return 0;
 
         case 5:
-          printf("V%d -= V%d (VF = 0 if there's a borrow, else VF = 1)\n", nibble1, nibble2);
           if (V[nibble1] - V[nibble2] < 0)
             V[0xF] = 0;
           else
@@ -349,13 +328,11 @@ int decode(unsigned short instr){
           return 0;
 
         case 6:
-          printf("V%d >>= 1 (VF = least significant bit of V%d)\n", nibble1, nibble1);
           V[0xF] = V[nibble1] & 0x01;
           V[nibble1] >>= 1;
           return 0;
 
         case 7:
-          printf("V%d = V%d - V%d (VF = 0 if there's a borrow, else VF = 1)\n", nibble1, nibble2, nibble1);
           if (V[nibble2] - V[nibble1] < 0)
             V[0xF] = 0;
           else
@@ -364,59 +341,46 @@ int decode(unsigned short instr){
           return 0;
 
         case 0xE:
-          printf("V%d <<= 1 (VF = most significant bit of V%d)\n", nibble1, nibble1);
           V[0xF] = V[nibble1] & 0x80;
           V[nibble1] <<= 1;
           return 0;
 
         default:
-          printf("unrecognized instruction: 0x%X\n", instr);
           return 1;
       }
 
     case 9:
       if (nibble3 == 0){
-        printf("skip next instruction if (V%d != V%d)\n", nibble1, nibble2);
         if (V[nibble1] != V[nibble2]) pc += 2;
         return 0;
       }
-      else {
-        printf("unrecognized instruction: 0x%X\n", instr);
-        return 1;
-      }
+      else return 1;
 
     case 0xA:
-      printf("I = 0x%X\n", (0x0FFF & instr));
       I = (0x0FFF & instr);
       return 0;
 
     case 0xB:
-      printf("PC = V0 + 0x%X\n", (0x0FFF & instr));
       return jmp(V[0] + (0x0FFF & instr));
 
     case 0xC:
-      printf("V%d = rand(0 : 255) & 0x%X\n", nibble1, byte1);
       V[nibble1] = rand() & byte1;
       return 0;
 
     case 0xD:
-      printf("draw(V%d, V%d, 0x%X)\n", nibble1, nibble2, nibble3);
       return draw(instr);
 
     case 0xE:
       switch(byte1){
         case 0x9E:
-          printf("skip next instruction if (key() == V%d)\n", nibble1);
           if (keys[V[nibble1]]) pc += 2;
           return 0;
 
         case 0xA1:
-          printf("skip next instruction if (key() != V%d)\n", nibble1);
           if (!keys[V[nibble1]]) pc += 2;
           return 0;
 
         default:
-          printf("unrecognized instruction: 0x%X\n", instr);
           return 1;
       }
 
@@ -424,12 +388,10 @@ int decode(unsigned short instr){
       switch(byte1){
 
         case 0x07:
-          printf("V%d = get_delay()\n", nibble1);
           V[nibble1] = dt/10;
           return 0;
 
         case 0x0A:
-          printf("V%d = get_key() (execution halted until key pressed)\n", nibble1);
           {int pressed = 0;
           for (int i = 0; i < 0x10; i++)
             if (keys[i]){
@@ -440,55 +402,40 @@ int decode(unsigned short instr){
           return 0;}
 
         case 0x15:
-          printf("delay_timer(V%d)\n", nibble1);
           dt = V[nibble1] * 60;
           return 0;
 
         case 0x18:
-          printf("sound_time(V%d)\n", nibble1);
           st = V[nibble1];
           return 0;
 
         case 0x1E:
-          printf("I += V%d\n", nibble1);
           I += V[nibble1];
           return 0;
 
         case 0x29:
-          printf("I = sprite_val[V%d]\n", nibble1);
           I = V[nibble1];
           return 0;
 
         case 0x33:
-          printf("set_BCD(V%d); *(I+0)=BCD(3); *(I+1)=BCD(2); *(I+2)=BCD(1);\n", nibble1);
           mem[I]     = V[(instr & 0x0F00) >> 8] / 100;
           mem[I + 1] = (V[(instr & 0x0F00) >> 8] / 10) % 10;
           mem[I + 2] = (V[(instr & 0x0F00) >> 8] % 100) % 10;
           return 0;
 
         case 0x55:
-          printf("reg_dump(V%d, &I)\n", nibble1);
           for (int i = 0, store = I; i <= nibble1; i++, store++)
             mem[store] = V[i];
           return 0;
 
         case 0x65:
-          printf("reg_load(V%d, &I)\n", nibble1);
           for (int i = 0, load = I; i <= nibble1; i++, load++)
             V[i] = mem[load];
           return 0;
 
         default:
-          printf("unrecognized instruction: 0x%X\n", instr);
           return 1;
       }
-
-      default:
-        printf("unrecognized instruction: 0x%X\n", instr);
-        return 1;
   }
-
-  // should be unreachable
-  printf("U FOOKING WOT M8: 0x%X\n", instr);
   return 1;
 }
