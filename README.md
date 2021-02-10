@@ -1,5 +1,5 @@
 # chip8
-my first emulator! (technically an interpreter)
+my first emulator
 
 ## Screenshots:
 
